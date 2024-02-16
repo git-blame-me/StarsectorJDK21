@@ -48,18 +48,47 @@ public class StarsectorAgentNewJDK {
 //			.make().load(ReplaceOldCall.class.getClassLoader(), ClassLoadingStrategy.Default.INJECTION).getLoaded();
 //			;
 
-		new AgentBuilder.Default().with(RedefinitionStrategy.DISABLED)
-				.with(AgentBuilder.Listener.StreamWriting.toSystemOut().withTransformationsOnly())
-				.disableClassFormatChanges().type(nameStartsWith("com.fs.graphics.TextureLoader"))
-				.transform((builder, typeDescription, classLoader, module, protectionDomain) -> {
-//						if (classLoader != null) {
-//							System.out.println("Classloader: " + classLoader.getName());
-//						}
-					return builder.method(named("o00000").and(ElementMatchers.isStatic())
-					// .and(takesArguments(java.nio.ByteBuffer.class))
-					// .and(takesArguments(String.class))
-					).intercept(MethodDelegation.to(CleanerFix.class));
-				}).installOn(instrumentation);
+//		new AgentBuilder.Default().with(RedefinitionStrategy.DISABLED)
+//				.with(AgentBuilder.Listener.StreamWriting.toSystemOut().withTransformationsOnly())
+//				.disableClassFormatChanges().type(nameStartsWith("com.fs.graphics.TextureLoader"))
+//				.transform((builder, typeDescription, classLoader, module, protectionDomain) -> {
+////						if (classLoader != null) {
+////							System.out.println("Classloader: " + classLoader.getName());
+////						}
+//					return builder.method(named("o00000").and(ElementMatchers.isStatic())
+//					// .and(takesArguments(java.nio.ByteBuffer.class))
+//					// .and(takesArguments(String.class))
+//					).intercept(MethodDelegation.to(CleanerFix.class));
+//				}).installOn(instrumentation);
+		
+		ByteBuddy bud = new ByteBuddy().with(TypeValidation.DISABLED);
+		
+		
+		//i guess better than just disabling the method altogether
+		new AgentBuilder.Default().with(bud)
+		.with(AgentBuilder.Listener.StreamWriting.toSystemError().withTransformationsOnly())
+		.with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
+		.type(named("com.fs.graphics.TextureLoader"))
+		.transform((builder, typeDescription, classLoader, module, protectionDomain) -> builder
+				.visit(new AsmVisitorWrapper.AbstractBase() {
+					public ClassVisitor wrap(TypeDescription instrumentedType, ClassVisitor classVisitor,
+							Implementation.Context implementationContext, TypePool typePool,
+							FieldList<FieldDescription.InDefinedShape> fields, MethodList<?> methods,
+							int writerFlags, int readerFlags) {
+						return new ClassRemapper(classVisitor,
+								new Remapper() {
+									@Override
+									public String map(String typeName) {
+										if ("sun/misc/Cleaner"
+												.equals(typeName)) {
+											return "jdk/internal/ref/Cleaner";
+										}
+										return typeName;
+									}
+								});
+					}
+				}))
+		.installOn(instrumentation);
 
 		final File tempFolder;
 
@@ -73,19 +102,18 @@ public class StarsectorAgentNewJDK {
 
 		//fix for Thread.stop()
 		//in 20 or 21 Thread.stop() throws an exception
-		new AgentBuilder.Default().disableClassFormatChanges().with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
+		new AgentBuilder.Default().disableClassFormatChanges()
+				.with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
 				// Make sure we see helpful logs
 				.with(AgentBuilder.RedefinitionStrategy.Listener.StreamWriting.toSystemError())
 				.with(AgentBuilder.Listener.StreamWriting.toSystemError().withTransformationsOnly())
 				.with(AgentBuilder.InstallationListener.StreamWriting.toSystemError())
-				.with(new InjectionStrategy.UsingInstrumentation(instrumentation, tempFolder))
-				.ignore(none())
-				// Ignore Byte Buddy and JDK classes we are not interested in
-				.ignore(nameStartsWith("net.bytebuddy.").or(nameStartsWith("jdk.internal.reflect."))
-						.or(nameStartsWith("java.lang.invoke.")).or(nameStartsWith("com.sun.proxy.")))
-				.disableClassFormatChanges().with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
 				.with(AgentBuilder.InitializationStrategy.NoOp.INSTANCE)
-				.with(AgentBuilder.TypeStrategy.Default.REDEFINE).type(is(Thread.class))
+				.with(AgentBuilder.TypeStrategy.Default.REDEFINE)
+				.with(new InjectionStrategy.UsingInstrumentation(instrumentation, tempFolder))
+				// Ignore Byte Buddy and JDK classes we are not interested in
+				.ignore(nameStartsWith("net.bytebuddy.").or(nameStartsWith("com.fs")))
+				.type(is(Thread.class))
 				.transform((builder, type, classLoader, module, domain) -> builder
 						.visit(Advice.to(ThreadFix.class).on(named("stop").and(isMethod()))))
 				.installOn(instrumentation);
@@ -108,7 +136,6 @@ public class StarsectorAgentNewJDK {
 		// com/sun/xml/txw2/output/IndentingXMLStreamWriter
 		// in
 		// com.fs.starfarer.campaign.save.CampaignGameManager
-		ByteBuddy bud = new ByteBuddy().with(TypeValidation.DISABLED);
 
 		new AgentBuilder.Default().with(bud)
 				.with(AgentBuilder.Listener.StreamWriting.toSystemError().withTransformationsOnly())
@@ -137,6 +164,8 @@ public class StarsectorAgentNewJDK {
 							}
 						}))
 				.installOn(instrumentation);
+
+		
 
 	}
 

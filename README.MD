@@ -1,3 +1,8 @@
+# Still a WIP
+
+This is still a work in progress and may not be good or totally working. I've not had much time to do testing. /
+There does appear to be some stuttering no matter the configuration.
+
 # Setup
 
 1. Unzip release into /Starsector
@@ -7,7 +12,6 @@
 5. Unpack JDK21 into that folder so that you have /Starsector/jre/bin
 6. Enjoy the new JDK21
 
-**The included vmparams file sets the max memory to 2G, it also disables verification which is needed since Starsector's obfuscator is bad.
 *** Tested for Starsector 0.96 and 0.97, obviously this can be very sensitive to changes on the starsector side.
 
 # Why?
@@ -26,6 +30,13 @@ https://openjdk.org/jeps/439
 2. jaxb-api.jar / txw2.jar - This is an older version of jaxb, 2.3.1. In Java 9 they hid and then later removed EE components https://openjdk.org/jeps/320 so these add needed functionality back.
 
 ## Second, this uses a Java agent to edit code as it is loaded so that it works with the newer JDK.
-1. DirectBuffer's Cleaner is a different type and in my testing it doesn't really need to be called anymore. This only needed to modify the static method com.fs.graphics.TextureLoader.o00000 - the entire method now does nothing, this seemed fine by looking the bytecode. Obviously this could have other side effects so fingers crossed.
+1. DirectBuffer's Cleaner type has changed from sun.misc.Cleaner to jdk.internal.ref.Cleaner so that class has been remapped.
 2. Thread.stop() now throws an exception. This call was ALREADY deprecated in Java7 and should not have been used. More recently it was updated to just throw an exception. The agent makes the call to this method do nothing. Seems fine.
 3. Starsector code was using IndentingXMLStreamWriter from EE code to write out the save file. Previously this class was inside the Java core library and located at com.sun.xml.internal.txw2.output.IndentingXMLStreamWriter. Now it is in txw2.jar and located at com.sun.xml.txw2.output.IndentingXMLStreamWriter. Since the class has moved packages the agent remaps the reference in the inner class of com.fs.starfarer.campaign.save.CampaignGameManager$5 that is responsible for creating the XStream instance that writes out the save file. 
+
+## Third, some changes to the vmparams so that it all runs.
+1. Disables verification -Xverify:none -- This is needed because the obfuscator starsector uses is terrible and uses illegal names for things like return/for/class/etc.
+2. Add exports and opens. Since Java 9 https://openjdk.org/jeps/261 we have modules, kind of cool but mostly a pain. These make it so Starsector can access code in other modules that are by default closed.
+3. Add new libs to classpath.
+4. Add the agent: -javaagent:agent.jar 
+5. Does enable the new ZGC,  -XX:+UseZGC -XX:+ZGenerational

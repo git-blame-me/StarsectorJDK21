@@ -7,7 +7,8 @@
 5. Unpack JDK21 into that folder so that you have /Starsector/jre/bin
 6. Enjoy the new JDK21
 
-**The included vmparams file sets the max memory to 2G
+**The included vmparams file sets the max memory to 2G, it also disables verification which is needed since Starsector's obfuscator is bad.
+*** Tested for Starsector 0.96 and 0.97, obviously this can be very sensitive to changes on the starsector side.
 
 # Why?
 

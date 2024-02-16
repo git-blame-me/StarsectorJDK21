@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE project>
+<project name="starsectorModBuild" default="deployAgent" basedir=".">
+	<description>
+		Build Script for starsector mods
+	</description>
+	<tstamp>
+		<format property="build.timestamp" pattern="yyyyMMddHHmmss" />
+	</tstamp>
+	<echo message="Build start: ${build.timestamp}" level="warning" />
+	<!-- Build Properties -->
+	<property environment="env" />
+	<property file="build.properties" />
+	<echo message="JDK lib dir: ${java.jdk.dir}" />
+	<echo message="ANT lib dir: ${ant.home}" />
+	
+	<path id="compile.classpath">
+	  <fileset dir="lib">
+	    <include name="*.jar"/>
+	  </fileset>
+
+	</path>
+
+	<!-- =========================
+			  target: clean
+		 ========================= -->
+	<target name="clean" description="Clean the directory and prep for build and deployment">
+		<!-- Delete Dist Directory -->
+		<delete dir="${dist.path}" />
+		<mkdir dir="${dist.path}" />
+		
+		<delete dir="${deploy.path}" />
+
+		<mkdir dir="${build.path}" />
+		
+	</target>
+	
+	<target name="copyConfig" description="Deploy the non code files">
+
+		<mkdir dir="${dist.path}" />
+		<copy todir="${dist.path}">
+			<fileset dir="${config.path}">
+				<include name="**/*" />
+			</fileset>
+		</copy> 
+
+	</target>
+	
+	<!-- =========================
+			   target: build
+		 ========================= -->
+	<target name="build" description="Build and Compile the project and prep for deployment">
+
+		<!-- Compile Source Code -->
+		<echo message="Compiling with Java compile executable=${java.jdk.compile}" />
+		<javac target="1.8" source="1.8"
+			includeantruntime="false" srcdir="src" 
+			destdir="${build.path}" encoding="Cp1252" fork="no" 
+			executable="${java.jdk.compile}" 
+			debug="${java-compile.debug.flag}">
+			<classpath refid="compile.classpath" />
+		</javac>
+
+		<!-- Copy over non-Java Files -->
+		<copy todir="${build.path}">
+			<fileset dir="src">
+				<exclude name="**/*.java" />
+			</fileset>
+		</copy>
+		
+	</target>
+		<!-- =========================
+			  target: deploy
+		 ========================= -->
+	<target name="deployMod" description="Deploy the project">
+		<antcall inheritAll="false" target="clean" />
+		<antcall inheritAll="false" target="copyConfig" />
+		<antcall inheritAll="false" target="build" />
+		
+		<!-- Generate a Jar File -->
+		<mkdir dir="${dist.path}/jars" />
+		<jar destfile="${dist.path}/jars/${jar.name}">
+			<fileset dir="${build.path}" />
+		</jar>
+		
+		<mkdir dir="${deploy.path}" />
+		
+		<copy todir="${deploy.path}">
+			<fileset dir="${dist.path}">
+				<include name="**/*" />
+			</fileset>
+		</copy>
+		
+	</target>
+	
+	<!-- =========================
+			  target: deploy
+		 ========================= -->
+	<target name="deployAgent" description="Deploy the project">
+		<antcall inheritAll="false" target="clean" />
+		<antcall inheritAll="false" target="copyConfig" />
+		<antcall inheritAll="false" target="build" />
+		
+		<!-- Generate a Jar File -->
+		<mkdir dir="${dist.path}/starsector-core" />
+		<jar destfile="${dist.path}/starsector-core/${jar.name}">
+			<fileset dir="${build.path}" />
+		    <manifest>
+		        <attribute name="Premain-Class" value="data.agent.StarsectorAgentNewJDK" />
+		        <attribute name="Can-Redefine-Classes" value="true" />
+		        <attribute name="Can-Retransform-Classes" value="true" />
+		    </manifest>
+		</jar>
+		
+		<mkdir dir="${deploy.agent.path}" />
+		
+		<copy todir="${deploy.agent.path}">
+			<fileset dir="${dist.path}">
+				<include name="**/*" />
+			</fileset>
+		</copy>
+		
+	</target>
+ 
+	
+</project>

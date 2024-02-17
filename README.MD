@@ -1,7 +1,8 @@
 # Still a WIP
 
-This is still a work in progress and may not be good or totally working. I've not had much time to do testing. /
-There does appear to be some stuttering no matter the configuration.
+This is still a work in progress and may not be good or totally working. I'm working on testing still so backup your saves, your mileage may vary.
+
+There does appear to be some stuttering with the default Starsector config. I was able to resolve it on my install by increasing the fps setting to 70 or higher in \Starsector\starsector-core\data\config\settings.json. Disabling vsync also fixed it but caused terrible screen tearing for me. It appears that there is some sort timing issue with how vsync is working that has changed since java8. Still investigating.
 
 # Setup
 
@@ -27,7 +28,7 @@ https://openjdk.org/jeps/439
 
 ## First, new libraries.
 1. byte-buddy-1.14.11.jar - This is for the java agent described below.
-2. jaxb-api.jar / txw2.jar - This is an older version of jaxb, 2.3.1. In Java 9 they hid and then later removed EE components https://openjdk.org/jeps/320 so these add needed functionality back.
+2. jaxb-api.jar / txw2.jar - This is an older version of jaxb, 2.3.1 that still has the old javax classpaths. In Java 9 they hid and then later removed EE components https://openjdk.org/jeps/320 so these add needed functionality back.
 
 ## Second, this uses a Java agent to edit code as it is loaded so that it works with the newer JDK.
 1. DirectBuffer's Cleaner type has changed from sun.misc.Cleaner to jdk.internal.ref.Cleaner so that class has been remapped.
@@ -40,3 +41,5 @@ https://openjdk.org/jeps/439
 3. Add new libs to classpath.
 4. Add the agent: -javaagent:agent.jar 
 5. Does enable the new ZGC,  -XX:+UseZGC -XX:+ZGenerational
+6. Add -Djava.util.Arrays.useLegacyMergeSort=true since there appear to be a few of Starsector's comparators are not appropriately transitive (a > b, b > c, therefore a > c) this breaks the newer TimSort in java.
+7. Min/Max memory set to 4G. This was fine for me but will greatly vary for people depending on mods used.

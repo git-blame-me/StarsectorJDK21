@@ -10,7 +10,6 @@ import java.nio.file.Files;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.AgentBuilder.InjectionStrategy;
-import net.bytebuddy.agent.builder.AgentBuilder.RedefinitionStrategy;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.AsmVisitorWrapper;
 import net.bytebuddy.description.field.FieldDescription;
@@ -19,11 +18,9 @@ import net.bytebuddy.description.method.MethodList;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.scaffold.TypeValidation;
 import net.bytebuddy.implementation.Implementation;
-import net.bytebuddy.implementation.MethodDelegation;
 import net.bytebuddy.jar.asm.ClassVisitor;
 import net.bytebuddy.jar.asm.commons.ClassRemapper;
 import net.bytebuddy.jar.asm.commons.Remapper;
-import net.bytebuddy.matcher.ElementMatchers;
 import net.bytebuddy.pool.TypePool;
 
 /**
@@ -114,8 +111,9 @@ public class StarsectorAgentNewJDK {
 				// Ignore Byte Buddy and JDK classes we are not interested in
 				.ignore(nameStartsWith("net.bytebuddy.").or(nameStartsWith("com.fs")))
 				.type(is(Thread.class))
-				.transform((builder, type, classLoader, module, domain) -> builder
-						.visit(Advice.to(ThreadFix.class).on(named("stop").and(isMethod()))))
+				.transform((builder, type, classLoader, module, domain) -> 
+						//builder.method(named("stop")).intercept(MethodDelegation.to(ThreadFixTwo.class)))
+						builder.visit(Advice.to(ThreadFix.class).on(named("stop"))))
 				.installOn(instrumentation);
 
 		//unneeded fix for updated xstream lib, new lib was not required
@@ -165,7 +163,13 @@ public class StarsectorAgentNewJDK {
 						}))
 				.installOn(instrumentation);
 
-		
+		//was using for testing frame times.
+//		new AgentBuilder.Default().with(RedefinitionStrategy.DISABLED)
+//		.with(AgentBuilder.Listener.StreamWriting.toSystemOut().withTransformationsOnly())
+//		.disableClassFormatChanges().type(named("com.fs.starfarer.campaign.CampaignState"))
+//		.transform((builder, type, classLoader, module, domain) -> 
+//			builder.visit(Advice.to(FrameTime.class).on(named("advance"))))
+//		.installOn(instrumentation);
 
 	}
 
@@ -175,7 +179,6 @@ public class StarsectorAgentNewJDK {
 	 *
 	 */
 	public static class CleanerFix {
-
 		public static void intercept(ByteBuffer arg0, String arg1) {
 			// System.out.println("CleanerFix Intercepted");
 			return;
@@ -190,8 +193,22 @@ public class StarsectorAgentNewJDK {
 	public static class ThreadFix {
 		@Advice.OnMethodEnter(skipOn = Advice.OnDefaultValue.class)
 		public static boolean intercept() {
-			// System.out.println("ThreadFix Intercepted");
+			System.out.println("ThreadFix Intercepted");
 			return false;
+		}
+	}
+	
+	public static class FrameTime {
+		public static long lastFrame = 0L;
+		@Advice.OnMethodEnter
+		public static void intercept() {
+			long curFrame = System.currentTimeMillis();
+			long diff = curFrame - lastFrame;
+			if (diff > 19) {
+				System.out.println("--******%d".formatted(curFrame - lastFrame));
+			}
+			lastFrame = curFrame;
+			return;
 		}
 	}
 }

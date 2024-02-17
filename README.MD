@@ -20,7 +20,7 @@ There does appear to be some stuttering with the default Starsector config. I wa
 I wanted to do some modding but was irritated by having to write code for ancient java.
 
 Maybe people can test it and see if it is better or worse? New garbage collectors are available as well:\
-https://medium.com/@asdf123456789/a-new-modern-garbage-collector-in-jdk-21-4087e7ea9a5c \
+https://docs.oracle.com/en/java/javase/21/gctuning/available-collectors.html \
 https://openjdk.org/jeps/377 \
 https://openjdk.org/jeps/439 
 

@@ -10,18 +10,23 @@ import java.nio.file.Files;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.AgentBuilder.InjectionStrategy;
+import net.bytebuddy.agent.builder.AgentBuilder.RedefinitionStrategy;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.asm.AsmVisitorWrapper;
 import net.bytebuddy.description.field.FieldDescription;
 import net.bytebuddy.description.field.FieldList;
 import net.bytebuddy.description.method.MethodList;
+import net.bytebuddy.description.method.ParameterDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.scaffold.TypeValidation;
 import net.bytebuddy.implementation.Implementation;
 import net.bytebuddy.jar.asm.ClassVisitor;
 import net.bytebuddy.jar.asm.commons.ClassRemapper;
 import net.bytebuddy.jar.asm.commons.Remapper;
+import net.bytebuddy.matcher.ElementMatchers;
+import net.bytebuddy.matcher.PrimitiveTypeMatcher;
 import net.bytebuddy.pool.TypePool;
+import net.bytebuddy.utility.JavaConstant;
 
 /**
  * Mods to allow starsector to run with jdk21
@@ -115,6 +120,32 @@ public class StarsectorAgentNewJDK {
 						//builder.method(named("stop")).intercept(MethodDelegation.to(ThreadFixTwo.class)))
 						builder.visit(Advice.to(ThreadFix.class).on(named("stop"))))
 				.installOn(instrumentation);
+		
+
+		
+		
+//		new AgentBuilder.Default().disableClassFormatChanges()
+//				.with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
+//				// Make sure we see helpful logs
+//				.with(AgentBuilder.RedefinitionStrategy.Listener.StreamWriting.toSystemError())
+//				.with(AgentBuilder.Listener.StreamWriting.toSystemError().withTransformationsOnly())
+//				.with(AgentBuilder.InstallationListener.StreamWriting.toSystemError())
+//				.with(AgentBuilder.InitializationStrategy.NoOp.INSTANCE)
+//				.with(AgentBuilder.TypeStrategy.Default.REDEFINE)
+//				.with(new InjectionStrategy.UsingInstrumentation(instrumentation, tempFolder))
+//				// Ignore Byte Buddy and JDK classes we are not interested in
+//				.ignore(nameStartsWith("net.bytebuddy.").or(nameStartsWith("com.fs")))
+//				.type(is(Thread.class))
+//				.transform((builder, type, classLoader, module, domain) -> 
+//						//builder.method(named("stop")).intercept(MethodDelegation.to(ThreadFixTwo.class)))
+//						builder.visit(Advice.to(ThreadSleepCheck.class)
+//								.on(named("beforeSleep")
+//										.and(isStatic())
+//										.and(takesArguments(1))
+//										//.and(ElementMatchers.)
+//										//.and(hasParameters(ElementMatchers.))
+//										)))
+//				.installOn(instrumentation);
 
 		//unneeded fix for updated xstream lib, new lib was not required
 		//this just disabled the default security on the new lib
@@ -170,6 +201,14 @@ public class StarsectorAgentNewJDK {
 //		.transform((builder, type, classLoader, module, domain) -> 
 //			builder.visit(Advice.to(FrameTime.class).on(named("advance"))))
 //		.installOn(instrumentation);
+		
+		//various timing checks for the lwjgl side of things
+//		new AgentBuilder.Default().with(RedefinitionStrategy.DISABLED)
+//		.with(AgentBuilder.Listener.StreamWriting.toSystemOut().withTransformationsOnly())
+//		.disableClassFormatChanges().type(named("org.lwjgl.opengl.Display"))
+//		.transform((builder, type, classLoader, module, domain) -> 
+//			builder.visit(Advice.to(DisplayTimer.class).on(named("swapBuffers"))))
+//		.installOn(instrumentation);
 
 	}
 
@@ -178,12 +217,12 @@ public class StarsectorAgentNewJDK {
 	 * 
 	 *
 	 */
-	public static class CleanerFix {
-		public static void intercept(ByteBuffer arg0, String arg1) {
-			// System.out.println("CleanerFix Intercepted");
-			return;
-		}
-	}
+//	public static class CleanerFix {
+//		public static void intercept(ByteBuffer arg0, String arg1) {
+//			// System.out.println("CleanerFix Intercepted");
+//			return;
+//		}
+//	}
 
 	/**
 	 * this does the actual replacement of the returned value
@@ -195,6 +234,18 @@ public class StarsectorAgentNewJDK {
 		public static boolean intercept() {
 			System.out.println("ThreadFix Intercepted");
 			return false;
+		}
+	}
+	
+	public static class ThreadSleepCheck {
+		@Advice.OnMethodEnter()
+		public static void intercept(@Advice.Argument(0) long time) {
+			String thread = Thread.currentThread().getName();
+			if (thread.equals("Thread-2")) {
+				long milli = time / 1000000;
+				System.out.println("Sleep %s - %d".formatted(thread,milli));
+			}
+			return;
 		}
 	}
 	
@@ -211,4 +262,37 @@ public class StarsectorAgentNewJDK {
 			return;
 		}
 	}
+	
+
+//	public static class DisplayTimer {
+//		public static long lastFrame = 0L;
+//		@Advice.OnMethodEnter
+//		public static void intercept() {
+//			long curFrame = System.currentTimeMillis();
+//			long diff = curFrame - lastFrame;
+//			if (diff > 19) {
+//				System.out.println("--******%d".formatted(curFrame - lastFrame));
+//			}
+//			lastFrame = curFrame;
+//			return;
+//		}
+//		
+//		public static long time = 0L;
+//		
+//		@Advice.OnMethodEnter
+//		public static void entry() {
+//			time = System.nanoTime();
+//			return;
+//		}
+//		
+//		@Advice.OnMethodExit
+//		public static void exit() {
+//			long finalTime = System.nanoTime() - time;
+//			finalTime /= 1_000_000;
+//			System.out.println("--******%d".formatted(finalTime));
+//			return;
+//		}
+//	}
+	
+	
 }

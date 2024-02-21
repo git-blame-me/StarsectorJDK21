@@ -2,16 +2,24 @@
 
 This is still a work in progress and may not be good or totally working. I'm working on testing still so backup your saves, your mileage may vary.
 
-There does appear to be some stuttering with the default Starsector config. I was able to resolve it on my install by increasing the fps setting to 70 or higher in \Starsector\starsector-core\data\config\settings.json. Disabling vsync also fixed it but caused terrible screen tearing for me. It appears that there is some sort timing issue with how vsync is working that has changed since java8. Still investigating.
+There does appear to be some stuttering with the default Starsector config. I was able to resolve it on my install by increasing the fps setting to 70 or higher in \Starsector\starsector-core\data\config\settings.json. Disabling vsync and cranking the frames currently lets me get 250-500 fps so that's cool.
 
 # Setup
 
+## Windows
 1. Unzip release into /Starsector
 2. Download JDK21 https://jdk.java.net/21/ 
 3. Rename the /Starsector/jre folder (or delete it)
 4. Create a new /Starsector/jre folder
 5. Unpack JDK21 into that folder so that you have /Starsector/jre/bin
 6. Enjoy the new JDK21
+
+##Linux
+coming soon
+
+##Mac
+coming soon
+
 
 *** Tested for Starsector 0.96 and 0.97, obviously this can be very sensitive to changes on the starsector side.
 

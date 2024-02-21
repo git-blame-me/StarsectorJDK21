@@ -44,6 +44,25 @@
 			</fileset>
 		</copy> 
 
+		<mkdir dir="${windows.dist.lib.path}" />
+		<copy todir="${windows.dist.lib.path}">
+			<fileset dir="${lib.path}">
+				<include name="**/*" />
+			</fileset>
+		</copy> 
+		<mkdir dir="${linux.dist.lib.path}" />
+		<copy todir="${linux.dist.lib.path}">
+			<fileset dir="${lib.path}">
+				<include name="**/*" />
+			</fileset>
+		</copy> 
+		<mkdir dir="${mac.dist.lib.path}" />
+		<copy todir="${mac.dist.lib.path}">
+			<fileset dir="${lib.path}">
+				<include name="**/*" />
+			</fileset>
+		</copy> 
+
 	</target>
 	
 	<!-- =========================
@@ -53,7 +72,7 @@
 
 		<!-- Compile Source Code -->
 		<echo message="Compiling with Java compile executable=${java.jdk.compile}" />
-		<javac target="1.8" source="1.8"
+		<javac target="21" source="21"
 			includeantruntime="false" srcdir="src" 
 			destdir="${build.path}" encoding="Cp1252" fork="no" 
 			executable="${java.jdk.compile}" 
@@ -69,29 +88,6 @@
 		</copy>
 		
 	</target>
-		<!-- =========================
-			  target: deploy
-		 ========================= -->
-	<target name="deployMod" description="Deploy the project">
-		<antcall inheritAll="false" target="clean" />
-		<antcall inheritAll="false" target="copyConfig" />
-		<antcall inheritAll="false" target="build" />
-		
-		<!-- Generate a Jar File -->
-		<mkdir dir="${dist.path}/jars" />
-		<jar destfile="${dist.path}/jars/${jar.name}">
-			<fileset dir="${build.path}" />
-		</jar>
-		
-		<mkdir dir="${deploy.path}" />
-		
-		<copy todir="${deploy.path}">
-			<fileset dir="${dist.path}">
-				<include name="**/*" />
-			</fileset>
-		</copy>
-		
-	</target>
 	
 	<!-- =========================
 			  target: deploy
@@ -102,8 +98,8 @@
 		<antcall inheritAll="false" target="build" />
 		
 		<!-- Generate a Jar File -->
-		<mkdir dir="${dist.path}/starsector-core" />
-		<jar destfile="${dist.path}/starsector-core/${jar.name}">
+		<mkdir dir="${dist.path}/lib" />
+		<jar destfile="${dist.path}/lib/${jar.name}">
 			<fileset dir="${build.path}" />
 		    <manifest>
 		        <attribute name="Premain-Class" value="data.agent.StarsectorAgentNewJDK" />
@@ -111,11 +107,31 @@
 		        <attribute name="Can-Retransform-Classes" value="true" />
 		    </manifest>
 		</jar>
+
+
+		<mkdir dir="${windows.dist.lib.path}" />
+		<copy todir="${windows.dist.lib.path}">
+			<fileset dir="${dist.path}/lib">
+				<include name="**/*" />
+			</fileset>
+		</copy> 
+		<mkdir dir="${linux.dist.lib.path}" />
+		<copy todir="${linux.dist.lib.path}">
+			<fileset dir="${dist.path}/lib">
+				<include name="**/*" />
+			</fileset>
+		</copy> 
+		<mkdir dir="${mac.dist.lib.path}" />
+		<copy todir="${mac.dist.lib.path}">
+			<fileset dir="${dist.path}/lib">
+				<include name="**/*" />
+			</fileset>
+		</copy> 
 		
 		<mkdir dir="${deploy.agent.path}" />
 		
 		<copy todir="${deploy.agent.path}">
-			<fileset dir="${dist.path}">
+			<fileset dir="${windows.dist.path}">
 				<include name="**/*" />
 			</fileset>
 		</copy>
